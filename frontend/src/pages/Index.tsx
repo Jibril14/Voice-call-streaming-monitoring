@@ -9,7 +9,7 @@ const sampleCallData = {
   call_id: "Jabr9TXYYJHfvl6Syypi88rdAHYHmcq6",
   agent_id: "oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD",
   retell_llm_dynamic_variables: {
-    customer_name: "John Doe"
+    customer_name: "Abdul Samad"
   },
   start_timestamp: 1703302407333,
   end_timestamp: 1703302428855,
