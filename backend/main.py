@@ -1,6 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
 from app.routes import api
+from app.db import schema
+# from app.db.database import Base
+from app.db.database import engine
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -20,6 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+schema.Base.metadata.create_all(engine)
+# Base.metadata.create_all(engine)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

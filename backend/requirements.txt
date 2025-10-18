@@ -2,3 +2,5 @@ fastapi
 uvicorn
 pydantic
 pytest
+SQLAlchemy==1.4.39
+python-dotenv==1.0.1
