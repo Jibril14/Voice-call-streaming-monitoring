@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Depends, HTTPException, BackgroundTasks
 import httpx
-# import asyncio
+import asyncio
 import websockets
 import json
 from typing import List
@@ -44,34 +44,29 @@ VAPI_URL = "https://api.vapi.ai/call"
 
 # async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
 async def listen_to_vapi(listen_url: str):
-    """
-    Connects to Vapi listenUrl using websockets and streams audio chunks.
-    """
     print(f"Connecting to listen stream: {listen_url}")
-    try:
-        async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
-            print("Connected to Vapi audio stream")
-            async for message in ws:
-                if isinstance(message, bytes):
-                    # Binary audio chunk (Opus-encoded)
-                    print(f"Received binary chunk: {len(message)} bytes")
-                else:
-                    # Text message (likely JSON event or control message)
-                    try:
-                        data = json.loads(message)
-                        print("Message:", data)
-                    except json.JSONDecodeError:
-                        print("Raw text:", message)
-    except Exception as e:
-        print("Error connecting to Vapi stream:", e)
+    for attempt in range(2):  # x2
+        try:
+            async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
+                print("Connected to Vapi audio stream")
+                async for message in ws:
+                    if isinstance(message, bytes):
+                        print(f"Received binary chunk: {len(message)} bytes")
+                    else:
+                        try:
+                            data = json.loads(message)
+                            print("Message:", data)
+                        except json.JSONDecodeError:
+                            print("Raw text:", message)
+                break  # exit loop if connection closed gracefully
+        except Exception as e:
+            print(f"Connection attempt {attempt+1} failed: {e}")
+            await asyncio.sleep(0.5)  # brief pause before retry
+
 
 
 @router.post("/start-call")
-async def start_call(background_tasks: BackgroundTasks):
-    """
-    Sends a POST request to Vapi to start a call,
-    retrieves the listenUrl, and starts the streaming listener.
-    """
+async def start_call():
     payload = {
         "assistantId": "dad2c117-6f5e-445e-ab1e-47dcc4f81719",
         "customer": {"number": "+966544332616"},
@@ -88,13 +83,10 @@ async def start_call(background_tasks: BackgroundTasks):
 
     if 200 <= response.status_code < 300:
         data = response.json()
-        monitor = data.get("monitor", {})
-        listen_url = monitor.get("listenUrl")
-
+        listen_url = data.get("monitor", {}).get("listenUrl")
         if listen_url:
-            # Run the websocket listener in background
-            background_tasks.add_task(listen_to_vapi, listen_url)
-            print("Call started successfully, listening to stream...")
+            print("Got listenUrl, connecting immediately...")
+            asyncio.create_task(listen_to_vapi(listen_url))  # connect instantly
             return {"status": "connected", "listen_url": listen_url}
         else:
             print("No listenUrl found in response.")
@@ -102,3 +94,4 @@ async def start_call(background_tasks: BackgroundTasks):
     else:
         print("Failed to start call:", response.text)
         return {"status": "error", "message": response.text}
+
