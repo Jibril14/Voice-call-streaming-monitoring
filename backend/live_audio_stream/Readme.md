@@ -4,3 +4,7 @@
 - ffmpeg -i yourfile.mp3 -ar 16000 -ac 1 -sample_fmt s16 sample.wav
 
 
+python live_audio_stream_client.py
+python live_audio_stream_server.py
+
+python audio_stream_realtime_classify.py
