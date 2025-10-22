@@ -5,18 +5,30 @@ import websockets
 import json
 from typing import List
 from app.models import models
-# from app.db.schema import Call
-# from sqlalchemy.orm.session import Session 
+from live_audio_stream.audio_stream_realtime_classify import classify_emotion
 
-
-# from sqlalchemy.orm import Session
-# from app.db.database import get_db, SessionLocal
 import ssl, certifi
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
-
 router = APIRouter()
 
+
+
+from pydub import AudioSegment
+import os
+
+CHUNKS_PER_FILE = 25 
+OUTPUT_DIR = "/data" 
+SAMPLE_WIDTH = 2 
+FRAME_RATE = 16000
+CHANNELS = 1
+
+# Ensure the output directory exists
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Buffer to collect audio chunks
+buffer = bytearray()  
+chunk_count = 0
 
 
 sample_countries = models.Countries(countries=[
@@ -45,24 +57,44 @@ VAPI_URL = "https://api.vapi.ai/call"
 # async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
 async def listen_to_vapi(listen_url: str):
     print(f"Connecting to listen stream: {listen_url}")
-    for attempt in range(2):  # x2
+    for attempt in range(2):  # Try 2 times
         try:
             async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
                 print("Connected to Vapi audio stream")
-                async for message in ws:
-                    if isinstance(message, bytes):
-                        print(f"Received binary chunk: {len(message)} bytes")
+                async for msg in ws:
+                    if isinstance(msg, bytes):
+                        buffer.extend(msg)
+
+                        # Process when few chunks 25 collected
+                        if len(buffer) >= CHUNKS_PER_FILE * len(msg):
+                            # Create AudioSegment from the buffer
+                            audio_segment = AudioSegment(
+                                data=bytes(buffer),
+                                sample_width=SAMPLE_WIDTH,
+                                frame_rate=FRAME_RATE,
+                                channels=CHANNELS,
+                            )
+
+                            # Save the audio segment to a file
+                            filename = f"{OUTPUT_DIR}/chunk_{chunk_count:04d}.wav"
+                            audio_segment.export(filename, format="wav")
+
+                            print(f"Saved {filename}")
+                            # Reset the buffer for the next set of chunks
+                            buffer.clear()
+                            chunk_count += 1
+
                     else:
                         try:
-                            data = json.loads(message)
+                            data = json.loads(msg)
                             print("Message:", data)
                         except json.JSONDecodeError:
-                            print("Raw text:", message)
-                break  # exit loop if connection closed gracefully
+                            print("Raw text:", msg)
+
+                break
         except Exception as e:
             print(f"Connection attempt {attempt+1} failed: {e}")
-            await asyncio.sleep(0.5)  # brief pause before retry
-
+            await asyncio.sleep(0.5)
 
 
 @router.post("/start-call")

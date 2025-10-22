@@ -7,7 +7,6 @@ python-dotenv==1.0.1
 websockets
 certifi
 pydub
-ffmpeg-python
 torch==2.8.0
 speechbrain==1.0.2
 transformer==4.57.1
