@@ -5,15 +5,13 @@ from io import BytesIO
 from audio_stream_realtime_classify import classify_emotion
 import os
 
-# Audio format parameters — must match your server
 SAMPLE_WIDTH = 2
 FRAME_RATE = 16000
 CHANNELS = 1
 
-# Number of chunks to accumulate before processing
-CHUNKS_PER_FILE = 25  
+# Number of chunks to accumulate before processing, # high generally dont timeout stream server
+CHUNKS_PER_FILE = 100 # change this if you want e.g 50 gave 3sec chunk 
 
-# Directory to store chunks (optional)
 OUTPUT_DIR = "data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -23,14 +21,14 @@ async def save_audio_chunks():
     chunk_count = 0
     buffer = bytearray()
 
-    async with websockets.connect(uri) as ws:
+    async with websockets.connect(uri, ping_interval=10, ping_timeout=200) as ws:
         print("Connected to server, receiving audio...")
 
         async for msg in ws:
             if isinstance(msg, bytes):
                 buffer.extend(msg)
 
-                # Process when few chunks 25 are collected
+                # Process when 25 chunks collected
                 if len(buffer) >= CHUNKS_PER_FILE * len(msg):
 
                     audio_segment = AudioSegment(
@@ -46,7 +44,7 @@ async def save_audio_chunks():
                     try:
                         result = classify_emotion(filename)
                         label = result.get("predicted_label", "unknown")
-                        confidence = result.get("confidence", 0.0)
+                        confidence = result.get("confidence", "unknown")
 
                         print(f"\nSaved {filename} ({len(buffer)} bytes)")
                         print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")

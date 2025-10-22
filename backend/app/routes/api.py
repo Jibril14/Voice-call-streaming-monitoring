@@ -17,10 +17,10 @@ router = APIRouter()
 from pydub import AudioSegment
 import os
 
-CHUNKS_PER_FILE = 25 
+CHUNKS_PER_FILE = 250 
 OUTPUT_DIR = "/data" 
 SAMPLE_WIDTH = 2 
-FRAME_RATE = 16000
+FRAME_RATE = 24000
 CHANNELS = 1
 
 # Ensure the output directory exists
@@ -28,7 +28,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Buffer to collect audio chunks
 buffer = bytearray()  
-chunk_count = 0
+
 
 
 sample_countries = models.Countries(countries=[
@@ -56,8 +56,9 @@ VAPI_URL = "https://api.vapi.ai/call"
 
 # async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
 async def listen_to_vapi(listen_url: str):
+    chunk_count = 0
     print(f"Connecting to listen stream: {listen_url}")
-    for attempt in range(2):  # Try 2 times
+    for attempt in range(4):  # Try 2 times
         try:
             async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
                 print("Connected to Vapi audio stream")
@@ -79,7 +80,17 @@ async def listen_to_vapi(listen_url: str):
                             filename = f"{OUTPUT_DIR}/chunk_{chunk_count:04d}.wav"
                             audio_segment.export(filename, format="wav")
 
-                            print(f"Saved {filename}")
+                            try:
+                                result = classify_emotion(filename)
+                                label = result.get("predicted_label", "unknown")
+                                confidence = result.get("confidence", "unknown")
+
+                                print(f"\nSaved {filename} ({len(buffer)} bytes)")
+                                print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
+
+                            except Exception as e:
+                                print(f"Error classifying {filename}: {e}")
+                                    
                             # Reset the buffer for the next set of chunks
                             buffer.clear()
                             chunk_count += 1
@@ -126,4 +137,5 @@ async def start_call():
     else:
         print("Failed to start call:", response.text)
         return {"status": "error", "message": response.text}
+
 
