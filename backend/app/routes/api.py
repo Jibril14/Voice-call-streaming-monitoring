@@ -17,10 +17,10 @@ router = APIRouter()
 from pydub import AudioSegment
 import os
 
-CHUNKS_PER_FILE = 250 
+CHUNKS_PER_FILE = 500
 OUTPUT_DIR = "/data" 
 SAMPLE_WIDTH = 2 
-FRAME_RATE = 24000
+FRAME_RATE = 30000
 CHANNELS = 1
 
 # Ensure the output directory exists
@@ -50,7 +50,7 @@ def get_countries():
 # "customer phone":
 # "phoneNumberId":
 
-
+# Test Api key not to be used in production
 VAPI_API_KEY = "e607594b-68fc-4c70-a5da-4424c7125340"
 VAPI_URL = "https://api.vapi.ai/call"
 
@@ -85,7 +85,7 @@ async def listen_to_vapi(listen_url: str):
                                 label = result.get("predicted_label", "unknown")
                                 confidence = result.get("confidence", "unknown")
 
-                                print(f"\nSaved {filename} ({len(buffer)} bytes)")
+                                print(f"\n {filename} ({len(buffer)} bytes)")
                                 print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
 
                             except Exception as e:
