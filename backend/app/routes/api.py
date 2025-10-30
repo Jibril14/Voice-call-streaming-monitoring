@@ -5,7 +5,9 @@ import websockets
 import json
 from typing import List
 from app.models import models
-from live_audio_stream.audio_stream_realtime_classify import classify_emotion
+# from live_audio_stream.audio_stream_realtime_classify import classify_emotion
+from live_audio_stream_transcription_diarization.audio_diarize import audio_diarize
+from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
 
 import ssl, certifi
 ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -81,15 +83,22 @@ async def listen_to_vapi(listen_url: str):
                             audio_segment.export(filename, format="wav")
 
                             try:
-                                result = classify_emotion(filename)
-                                label = result.get("predicted_label", "unknown")
-                                confidence = result.get("confidence", "unknown")
-
-                                print(f"\n {filename} ({len(buffer)} bytes)")
-                                print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
-
+                                transcript = audio_diarize(filename)
+                                emotion = get_emotions(transcript)
+                                print("Emotion Result:", emotion)
                             except Exception as e:
                                 print(f"Error classifying {filename}: {e}")
+
+                            # try:
+                            #     result = classify_emotion(filename)
+                            #     label = result.get("predicted_label", "unknown")
+                            #     confidence = result.get("confidence", "unknown")
+
+                            #     print(f"\n {filename} ({len(buffer)} bytes)")
+                            #     print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
+
+                            # except Exception as e:
+                            #     print(f"Error classifying {filename}: {e}")
                                     
                             # Reset the buffer for the next set of chunks
                             buffer.clear()
@@ -112,7 +121,7 @@ async def listen_to_vapi(listen_url: str):
 async def start_call():
     payload = {
         "assistantId": "dad2c117-6f5e-445e-ab1e-47dcc4f81719",
-        "customer": {"number": "+966544332616"},
+        "customer": {"number": "+2347034579838"},
         "phoneNumberId": "8bfa8f0b-c80c-4863-91d9-26f3748dcb25",
     }
 

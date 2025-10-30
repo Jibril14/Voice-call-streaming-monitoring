@@ -1,0 +1,40 @@
+[{'text': " So last night I was watching this movie. Have you ever seen the movie North and South? I haven't. It's kind of like Pride and Prejudice. It's really good. I haven't seen Pride and Prejudice. I'm like way out of the loop on that kind of stuff. Well, it's a good movie. I like it. Well, I think I saw like a...", 'start': 4.3, 'end': 19.825, '
+speaker': 'SPEAKER_00'}, 
+{'text': " I didn't see the actual one. I want to say I saw one that was similar to it. Kind of a take off version. Oh, okay. That's like the closest thing I know about it. Oh, that's cool. Yeah, it's really good. It's one of my favorite movies. My wife would enjoy it? I bet your wife would really enjoy it. If you rented it for her and maybe got, like, you guys could get some popcorn or something. I bet you would both really like it. Sounds like an okay idea. Yeah.", 'start': 20.618, 'end': 45.155, '
+speaker': 'SPEAKER_00'}, 
+{'text': " You know, you kind of talk about, like, Jim Refredette? Yeah. The guy in the movie is, like, Jim Refredette. He's just the man, like, everyone loves it. Yeah. That's cool. Yeah. I would, I'd probably check it out then. Cool. It was pretty reasonable, so. Awesome. Great.", 'start': 45.155, 'end': 57.963, '
+speaker': 'SPEAKER_01'}]
+
+
+
+
+
+
+{'label': 'disappointment', 'score': 0.4249800443649292}, 
+{'label': 'annoyance', 'score': 0.22549904882907867}, 
+{'label': 'sadness', 'score': 0.14439724385738373}, 
+{'label': 'disapproval', 'score': 0.1172185018658638}, 
+{'label': 'neutral', 'score': 0.08037516474723816}, 
+{'label': 'anger', 'score': 0.023064127191901207}, 
+{'label': 'joy', 'score': 0.017815008759498596}, 
+{'label': 'realization', 'score': 0.014487973414361477}, 
+{'label': 'confusion', 'score': 0.010773098096251488}, 
+{'label': 'nervousness', 'score': 0.010688322596251965}, 
+{'label': 'approval', 'score': 0.010181578807532787}, 
+{'label': 'embarrassment', 'score': 0.005122669041156769}, 
+{'label': 'disgust', 'score': 0.0047694360837340355}, 
+{'label': 'curiosity', 'score': 0.004524820018559694}, 
+{'label': 'caring', 'score': 0.004381753969937563}, 
+{'label': 'desire', 'score': 0.004363475367426872}, 
+{'label': 'relief', 'score': 0.003705764887854457}, 
+{'label': 'excitement', 'score': 0.003364843549206853}, 
+{'label': 'remorse', 'score': 0.003234734758734703}, 
+{'label': 'amusement', 'score': 0.0025911000557243824}, 
+{'label': 'grief', 'score': 0.002507284749299288}, 
+{'label': 'optimism', 'score': 0.0024958220310509205}, 
+{'label': 'love', 'score': 0.0021672435104846954}, 
+{'label': 'surprise', 'score': 0.0021043671295046806}, 
+{'label': 'fear', 'score': 0.001596258720383048}, 
+{'label': 'admiration', 'score': 0.0013535008765757084}, 
+{'label': 'gratitude', 'score': 0.0006905549671500921}, 
+{'label': 'pride', 'score': 0.0006846730248071253}]

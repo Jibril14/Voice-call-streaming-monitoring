@@ -8,6 +8,7 @@ websockets
 certifi
 pydub
 torch==2.8.0
-speechbrain==1.0.2
+# speechbrain==1.0.2
 transformer==4.57.1
 torchcodec==2.8.0
+whisper

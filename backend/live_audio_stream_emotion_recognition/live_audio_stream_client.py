@@ -2,7 +2,9 @@ import asyncio
 import websockets
 from pydub import AudioSegment
 from io import BytesIO
-from audio_stream_realtime_classify import classify_emotion
+# from audio_stream_realtime_classify import classify_emotion
+from audio_diarize import audio_diarize
+from sentiment_analysis import get_emotions
 import os
 
 SAMPLE_WIDTH = 2
@@ -41,16 +43,23 @@ async def save_audio_chunks():
                     filename = f"{OUTPUT_DIR}/chunk_{chunk_count:04d}.wav"
                     audio_segment.export(filename, format="wav")
 
+                    print("filename:", filename)
                     try:
-                        result = classify_emotion(filename)
-                        label = result.get("predicted_label", "unknown")
-                        confidence = result.get("confidence", "unknown")
-
-                        print(f"\nSaved {filename} ({len(buffer)} bytes)")
-                        print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
-
+                        transcript = audio_diarize(filename)
+                        emotion = get_emotions(transcript)
+                        print("TTY:", emotion)
                     except Exception as e:
                         print(f"Error classifying {filename}: {e}")
+                    # try:
+                    #     result = classify_emotion(filename)
+                    #     label = result.get("predicted_label", "unknown")
+                    #     confidence = result.get("confidence", "unknown")
+
+                    #     print(f"\nSaved {filename} ({len(buffer)} bytes)")
+                    #     print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
+
+                    # except Exception as e:
+                    #     print(f"Error classifying {filename}: {e}")
 
                     buffer.clear()
                     chunk_count += 1
@@ -58,18 +67,3 @@ async def save_audio_chunks():
 
 if __name__ == "__main__":
     asyncio.run(save_audio_chunks())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
