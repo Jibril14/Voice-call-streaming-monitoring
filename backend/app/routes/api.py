@@ -6,7 +6,8 @@ import json
 from typing import List
 from app.models import models
 # from live_audio_stream.audio_stream_realtime_classify import classify_emotion
-from live_audio_stream_transcription_diarization.audio_diarize import audio_diarize
+# from live_audio_stream_transcription_diarization.audio_diarize import audio_diarize
+from live_audio_stream_transcription_diarization.audio_diarize_deepgram import DeepgramLiveTranscriber
 from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
 
 import ssl, certifi
@@ -19,7 +20,7 @@ router = APIRouter()
 from pydub import AudioSegment
 import os
 
-CHUNKS_PER_FILE = 500
+CHUNKS_PER_FILE = 100
 OUTPUT_DIR = "/data" 
 SAMPLE_WIDTH = 2 
 FRAME_RATE = 30000
@@ -56,54 +57,23 @@ def get_countries():
 VAPI_API_KEY = "e607594b-68fc-4c70-a5da-4424c7125340"
 VAPI_URL = "https://api.vapi.ai/call"
 
-# async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
+
+
 async def listen_to_vapi(listen_url: str):
-    chunk_count = 0
     print(f"Connecting to listen stream: {listen_url}")
-    for attempt in range(4):  # Try 2 times
+    deepgram = DeepgramLiveTranscriber()
+
+    await deepgram.connect()  # Start Deepgram connection
+
+    for attempt in range(4):
         try:
-            async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=10, ping_timeout=20) as ws:
+            async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=5, ping_timeout=10) as ws:
                 print("Connected to Vapi audio stream")
                 async for msg in ws:
                     if isinstance(msg, bytes):
-                        buffer.extend(msg)
-
-                        # Process when few chunks 25 collected
-                        if len(buffer) >= CHUNKS_PER_FILE * len(msg):
-                            # Create AudioSegment from the buffer
-                            audio_segment = AudioSegment(
-                                data=bytes(buffer),
-                                sample_width=SAMPLE_WIDTH,
-                                frame_rate=FRAME_RATE,
-                                channels=CHANNELS,
-                            )
-
-                            # Save the audio segment to a file
-                            filename = f"{OUTPUT_DIR}/chunk_{chunk_count:04d}.wav"
-                            audio_segment.export(filename, format="wav")
-
-                            try:
-                                transcript = audio_diarize(filename)
-                                emotion = get_emotions(transcript)
-                                print("Emotion Result:", emotion)
-                            except Exception as e:
-                                print(f"Error classifying {filename}: {e}")
-
-                            # try:
-                            #     result = classify_emotion(filename)
-                            #     label = result.get("predicted_label", "unknown")
-                            #     confidence = result.get("confidence", "unknown")
-
-                            #     print(f"\n {filename} ({len(buffer)} bytes)")
-                            #     print(f"Predicted Emotion: {label} (Confidence: {confidence:.3f})")
-
-                            # except Exception as e:
-                            #     print(f"Error classifying {filename}: {e}")
-                                    
-                            # Reset the buffer for the next set of chunks
-                            buffer.clear()
-                            chunk_count += 1
-
+                        print(f"Received {len(msg)} bytes from Vapi stream")
+                        # Send live audio directly to Deepgram
+                        await deepgram.send_audio(msg)
                     else:
                         try:
                             data = json.loads(msg)
@@ -115,6 +85,10 @@ async def listen_to_vapi(listen_url: str):
         except Exception as e:
             print(f"Connection attempt {attempt+1} failed: {e}")
             await asyncio.sleep(0.5)
+
+    # Close Deepgram connection gracefully
+    await deepgram.close()
+
 
 
 @router.post("/start-call")
@@ -138,7 +112,8 @@ async def start_call():
         listen_url = data.get("monitor", {}).get("listenUrl")
         if listen_url:
             print("Got listenUrl, connecting immediately...")
-            asyncio.create_task(listen_to_vapi(listen_url))  # connect instantly
+            asyncio.create_task(listen_to_vapi(listen_url))
+            # asyncio.create_task(listen_to_vapi(listen_url))  # connect instantly
             return {"status": "connected", "listen_url": listen_url}
         else:
             print("No listenUrl found in response.")

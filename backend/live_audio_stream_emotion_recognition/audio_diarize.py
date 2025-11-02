@@ -1,7 +1,14 @@
 import whisperx
 # from whisperx.diarize import DiarizationPipeline
 
-def audio_diarize_whisper(audio_file: str = "sample.wav"):
+import warnings
+warnings.filterwarnings("ignore")
+import logging
+logging.getLogger("whisperx").setLevel(logging.ERROR)
+
+
+
+def audio_diarize(audio_file: str = "sample.wav"):
     device = "cpu"
     batch_size = 16 # reduce if low on GPU mem
     compute_type = "int8" # change to "int8" if low on GPU mem (may reduce accuracy)
@@ -22,5 +29,5 @@ def audio_diarize_whisper(audio_file: str = "sample.wav"):
     return result
 
 if __name__ == "__main__":
-    result = audio_diarize_whisper()
+    result = audio_diarize()
     print(result)
