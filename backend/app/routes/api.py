@@ -1,26 +1,27 @@
-from fastapi import APIRouter, Query, Depends, HTTPException, BackgroundTasks
+import os
+from fastapi import APIRouter
 import httpx
 import asyncio
 import websockets
 import json
-from typing import List
+from pydub import AudioSegment
 from app.models import models
 # from live_audio_stream.audio_stream_realtime_classify import classify_emotion
 # from live_audio_stream_transcription_diarization.audio_diarize import audio_diarize
-from live_audio_stream_transcription_diarization.audio_diarize_deepgram import DeepgramLiveTranscriber
-from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
+from live_audio_stream_transcription_diarization.test import DeepgramLiveTranscriber
+# from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
 
 import ssl, certifi
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
+from dotenv import load_dotenv
+load_dotenv(".env")
+
+
 router = APIRouter()
 
 
-
-from pydub import AudioSegment
-import os
-
-CHUNKS_PER_FILE = 100
+CHUNKS_PER_FILE = 200
 OUTPUT_DIR = "/data" 
 SAMPLE_WIDTH = 2 
 FRAME_RATE = 30000
@@ -53,50 +54,89 @@ def get_countries():
 # "customer phone":
 # "phoneNumberId":
 
-# Test Api key not to be used in production
-VAPI_API_KEY = "e607594b-68fc-4c70-a5da-4424c7125340"
+
+VAPI_API_KEY = os.getenv("VAPI_API_KEY")
+CUSTOMER_PHONE_NUMBER = os.getenv("CUSTOMER_PHONE_NUMBER")
+ASSISTANT_ID = os.getenv("ASSISTANT_ID")
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+# VAPI_API_KEY = VAPI_API_KEY[0]
+
 VAPI_URL = "https://api.vapi.ai/call"
 
 
 
 async def listen_to_vapi(listen_url: str):
-    print(f"Connecting to listen stream: {listen_url}")
-    deepgram = DeepgramLiveTranscriber()
+    print(f"Connecting to Vapi stream: {listen_url}")
 
-    await deepgram.connect()  # Start Deepgram connection
+    deepgram = DeepgramLiveTranscriber()
+    await deepgram.connect()  # Connect to Deepgram WebSocket
+
+    ssl_context = ssl.create_default_context()
+
+    buffer = bytearray()
+    chunk_count = 0
 
     for attempt in range(4):
         try:
-            async with websockets.connect(listen_url, ssl=ssl_context, ping_interval=5, ping_timeout=10) as ws:
+            async with websockets.connect(
+                listen_url,
+                ssl=ssl_context,
+                ping_interval=5,
+                ping_timeout=10
+            ) as ws:
                 print("Connected to Vapi audio stream")
+
                 async for msg in ws:
                     if isinstance(msg, bytes):
-                        print(f"Received {len(msg)} bytes from Vapi stream")
-                        # Send live audio directly to Deepgram
+                        # Send live audio to Deepgram
                         await deepgram.send_audio(msg)
+
+                        # Buffer & optionally save locally
+                        buffer.extend(msg)
+                        if len(buffer) >= CHUNKS_PER_FILE * len(msg):
+                            audio_segment = AudioSegment(
+                                data=bytes(buffer),
+                                sample_width=SAMPLE_WIDTH,
+                                frame_rate=FRAME_RATE,
+                                channels=CHANNELS,
+                            )
+                            filename = f"{OUTPUT_DIR}/chunk_{chunk_count:04d}.wav"
+                            audio_segment.export(filename, format="wav")
+                            print(f"Saved {filename} ({len(buffer)} bytes)")
+                            buffer.clear()
+                            chunk_count += 1
+
+                        # 💤 Optional throttle — slow the sending loop
+                        # await asyncio.sleep(0.02)
+
                     else:
                         try:
                             data = json.loads(msg)
-                            print("Message:", data)
+                            print("Vapi message:", data)
                         except json.JSONDecodeError:
                             print("Raw text:", msg)
 
+                print("Vapi connection ended.")
                 break
+
         except Exception as e:
             print(f"Connection attempt {attempt+1} failed: {e}")
             await asyncio.sleep(0.5)
 
-    # Close Deepgram connection gracefully
+    # Wrap up Deepgram connection
+    await deepgram.finish()
+    await asyncio.sleep(2)
     await deepgram.close()
+    print("Deepgram connection closed.")
 
 
 
 @router.post("/start-call")
 async def start_call():
     payload = {
-        "assistantId": "dad2c117-6f5e-445e-ab1e-47dcc4f81719",
-        "customer": {"number": "+2347034579838"},
-        "phoneNumberId": "8bfa8f0b-c80c-4863-91d9-26f3748dcb25",
+        "assistantId": ASSISTANT_ID,
+        "customer": {"number": CUSTOMER_PHONE_NUMBER},
+        "phoneNumberId": PHONE_NUMBER_ID
     }
 
     headers = {

@@ -9,3 +9,4 @@ https://huggingface.co/openai/whisper-large-v2
 Deepgram
 https://developers.deepgram.com/docs/diarization
 https://developers.deepgram.com/docs/diarization#live-streaming
+https://developers.deepgram.com/reference/speech-to-text/listen-streaming?utm_source=chatgpt.com
