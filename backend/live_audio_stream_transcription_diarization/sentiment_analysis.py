@@ -3,7 +3,8 @@ import torch
 import numpy as np
 from scipy.special import expit  # sigmoid for multi-label
 
-MODEL = "SamLowe/roberta-base-go_emotions"
+# MODEL = "SamLowe/roberta-base-go_emotions"
+MODEL = "michellejieli/emotion_text_classifier"
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 

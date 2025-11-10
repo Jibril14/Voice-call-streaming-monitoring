@@ -5,21 +5,13 @@ import asyncio
 import websockets
 import json
 from pydub import AudioSegment
-from app.models import models
-# from live_audio_stream.audio_stream_realtime_classify import classify_emotion
-# from live_audio_stream_transcription_diarization.audio_diarize import audio_diarize
-from live_audio_stream_transcription_diarization.test import DeepgramLiveTranscriber
-# from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
-
+from live_audio_stream_transcription_diarization.audio_diarize_deepgram import DeepgramLiveTranscriber
 import ssl, certifi
-ssl_context = ssl.create_default_context(cafile=certifi.where())
-
 from dotenv import load_dotenv
+
+ssl_context = ssl.create_default_context(cafile=certifi.where())
 load_dotenv(".env")
-
-
 router = APIRouter()
-
 
 CHUNKS_PER_FILE = 200
 OUTPUT_DIR = "/data" 
@@ -27,42 +19,16 @@ SAMPLE_WIDTH = 2
 FRAME_RATE = 30000
 CHANNELS = 1
 
-# Ensure the output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Buffer to collect audio chunks
 buffer = bytearray()  
-
-
-
-sample_countries = models.Countries(countries=[
-    models.Country(name="Nigeria", capital="Abuja"),
-    models.Country(name="USA", capital="Washington, D.C."),
-])
-
-# GET endpoint
-@router.get("/countries", response_model=models.Countries)
-def get_countries():
-    return sample_countries
-
-
-#######################################
- 
-
-# VAPI_API_KEY
-# "assistantId":
-# "customer phone":
-# "phoneNumberId":
-
 
 VAPI_API_KEY = os.getenv("VAPI_API_KEY")
 CUSTOMER_PHONE_NUMBER = os.getenv("CUSTOMER_PHONE_NUMBER")
 ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-# VAPI_API_KEY = VAPI_API_KEY[0]
 
 VAPI_URL = "https://api.vapi.ai/call"
-
 
 
 async def listen_to_vapi(listen_url: str):
@@ -105,9 +71,6 @@ async def listen_to_vapi(listen_url: str):
                             print(f"Saved {filename} ({len(buffer)} bytes)")
                             buffer.clear()
                             chunk_count += 1
-
-                        # 💤 Optional throttle — slow the sending loop
-                        # await asyncio.sleep(0.02)
 
                     else:
                         try:
@@ -153,7 +116,6 @@ async def start_call():
         if listen_url:
             print("Got listenUrl, connecting immediately...")
             asyncio.create_task(listen_to_vapi(listen_url))
-            # asyncio.create_task(listen_to_vapi(listen_url))  # connect instantly
             return {"status": "connected", "listen_url": listen_url}
         else:
             print("No listenUrl found in response.")
