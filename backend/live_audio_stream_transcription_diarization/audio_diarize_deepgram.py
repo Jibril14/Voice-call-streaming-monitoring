@@ -4,11 +4,14 @@ import websockets
 import json
 import base64
 import ssl
+from datetime import datetime
 from dotenv import load_dotenv
 from live_audio_stream_transcription_diarization.sentiment_analysis import get_emotions
 
 load_dotenv(".env")
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
+
+timestamp = datetime.now().isoformat(timespec='seconds')
 
 print("DEEPGRAM_API_KEY:", DEEPGRAM_API_KEY)
 
@@ -32,6 +35,8 @@ DEEPGRAM_URL = (
 class DeepgramLiveTranscriber:
     def __init__(self):
         self.connection = None
+        self.customer_transcripts = []
+        self.agent_transcripts = []
 
     async def connect(self):
         headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
@@ -61,15 +66,21 @@ class DeepgramLiveTranscriber:
                         transcript = alt.get("transcript", "")
                         if transcript:
                             print("Customer Transcript:", transcript)
+                            start = data["start"]
+                            end = data["duration"]
                             emotion_classify = get_emotions(transcript)
                             print("Customer Emotion:", emotion_classify)
+                            entry = {"timestamp": timestamp, "speaker": "customer", "text": transcript, "start": start, "end": end}
+                            self.customer_transcripts.append(entry)
 
                     elif data.get("channel_index") == [1, 2]:
                         alt = data["channel"]["alternatives"][0] if data["channel"].get("alternatives") else {}
                         transcript = alt.get("transcript", "")
                         if transcript:
                             print("AI agent Transcript:", transcript)
-
+                            entry = {"timestamp": timestamp, "speaker": "agent", "text": transcript}
+                            self.agent_transcripts.append(entry)
+                            
 
         except Exception as e:
             print(f"Error receiving Deepgram messages: {e}")
@@ -91,6 +102,19 @@ class DeepgramLiveTranscriber:
             await self.connection.close()
             print("Deepgram connection closed.")
 
+    def get_transcript(self, speaker="both"):
+        if speaker == "customer":
+            # return " ".join(self.customer_transcripts)
+            return self.customer_transcripts[-1] if self.customer_transcripts and len(self.customer_transcripts) > 0 else ""
+        elif speaker == "agent":
+            # return " ".join(self.agent_transcripts)
+            return self.agent_transcripts[-1]
+        else:
+            # Combine both in order of collection (you could timestamp if needed)
+            return {
+                "customer": self.customer_transcripts[-1],
+                "agent": self.agent_transcripts[-1]
+            }
 
 async def test_deepgram():
     deepgram = DeepgramLiveTranscriber()

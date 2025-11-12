@@ -56,6 +56,7 @@ async def listen_to_vapi(listen_url: str):
                     if isinstance(msg, bytes):
                         # Send live audio to Deepgram
                         await deepgram.send_audio(msg)
+                        print("Task 1", deepgram.get_transcript("customer"))
 
                         # Buffer & optionally save locally
                         buffer.extend(msg)
@@ -86,11 +87,14 @@ async def listen_to_vapi(listen_url: str):
             print(f"Connection attempt {attempt+1} failed: {e}")
             await asyncio.sleep(0.5)
 
+    # print(deepgram.get_transcript("customer"))
     # Wrap up Deepgram connection
     await deepgram.finish()
     await asyncio.sleep(2)
     await deepgram.close()
     print("Deepgram connection closed.")
+    # return deepgram.get_transcript("customer")
+    
 
 
 
@@ -115,6 +119,7 @@ async def start_call():
         listen_url = data.get("monitor", {}).get("listenUrl")
         if listen_url:
             print("Got listenUrl, connecting immediately...")
+            # asyncio.create_task(listen_to_vapi(listen_url))
             asyncio.create_task(listen_to_vapi(listen_url))
             return {"status": "connected", "listen_url": listen_url}
         else:
