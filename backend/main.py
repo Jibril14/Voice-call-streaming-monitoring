@@ -12,6 +12,8 @@ app.include_router(api.router)
 
 origins = [
     "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080"
 
 ]
 

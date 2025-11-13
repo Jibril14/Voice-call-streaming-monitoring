@@ -70,7 +70,10 @@ class DeepgramLiveTranscriber:
                             end = data["duration"]
                             emotion_classify = get_emotions(transcript)
                             print("Customer Emotion:", emotion_classify)
-                            entry = {"timestamp": timestamp, "speaker": "customer", "text": transcript, "start": start, "end": end}
+                            key, value = next(iter(emotion_classify.items()))
+                            if key in ("anger", "disgust", "sadness"):
+                                value -= 0.7
+                            entry = {"timestamp": timestamp, "speaker": "customer", "text": transcript, "start": start, "end": end, "score": value}
                             self.customer_transcripts.append(entry)
 
                     elif data.get("channel_index") == [1, 2]:
@@ -78,7 +81,13 @@ class DeepgramLiveTranscriber:
                         transcript = alt.get("transcript", "")
                         if transcript:
                             print("AI agent Transcript:", transcript)
-                            entry = {"timestamp": timestamp, "speaker": "agent", "text": transcript}
+                            start = data["start"]
+                            end = data["duration"]
+                            emotion_classify = get_emotions(transcript)
+                            key, value = next(iter(emotion_classify.items()))
+                            if key in ("anger", "disgust", "sadness"):
+                                value -= 0.7
+                            entry = {"timestamp": timestamp, "speaker": "agent", "text": transcript, "start": start, "end": end, "score": value}
                             self.agent_transcripts.append(entry)
                             
 
@@ -105,15 +114,15 @@ class DeepgramLiveTranscriber:
     def get_transcript(self, speaker="both"):
         if speaker == "customer":
             # return " ".join(self.customer_transcripts)
-            return self.customer_transcripts[-1] if self.customer_transcripts and len(self.customer_transcripts) > 0 else ""
+            return self.customer_transcripts[-1] if self.customer_transcripts and len(self.customer_transcripts) > 0 else {}
         elif speaker == "agent":
             # return " ".join(self.agent_transcripts)
-            return self.agent_transcripts[-1]
+            return self.agent_transcripts[-1] if self.agent_transcripts and len(self.agent_transcripts) > 0 else {}
         else:
             # Combine both in order of collection (you could timestamp if needed)
             return {
-                "customer": self.customer_transcripts[-1],
-                "agent": self.agent_transcripts[-1]
+                "customer": self.customer_transcripts[-1] if self.customer_transcripts and len(self.customer_transcripts) > 0 else {},
+                "agent": self.agent_transcripts[-1] if self.agent_transcripts and len(self.agent_transcripts) > 0 else {}
             }
 
 async def test_deepgram():

@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 import httpx
 import asyncio
 import websockets
@@ -21,7 +21,9 @@ CHANNELS = 1
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-buffer = bytearray()  
+buffer = bytearray()
+
+transcript_queue = asyncio.Queue()
 
 VAPI_API_KEY = os.getenv("VAPI_API_KEY")
 CUSTOMER_PHONE_NUMBER = os.getenv("CUSTOMER_PHONE_NUMBER")
@@ -56,7 +58,12 @@ async def listen_to_vapi(listen_url: str):
                     if isinstance(msg, bytes):
                         # Send live audio to Deepgram
                         await deepgram.send_audio(msg)
-                        print("Task 1", deepgram.get_transcript("customer"))
+                        meta_data = deepgram.get_transcript()
+                        print("Task:", meta_data)
+
+                        if meta_data:
+                            payload = meta_data
+                            await transcript_queue.put(payload)
 
                         # Buffer & optionally save locally
                         buffer.extend(msg)
@@ -121,7 +128,15 @@ async def start_call():
             print("Got listenUrl, connecting immediately...")
             # asyncio.create_task(listen_to_vapi(listen_url))
             asyncio.create_task(listen_to_vapi(listen_url))
-            return {"status": "connected", "listen_url": listen_url}
+            # return {"status": "connected", "listen_url": listen_url}
+            return {
+                "CallDetails": {
+                    "CallID": "Jabr9TXYJYHvfI65yyiP88rdAHYHmcq6",
+                    "Customer": "Abdul Samad",
+                    "Duration": "In progress",
+                    "StartTime": "12/23/2023, 4:33:27 AM"
+                }
+            }
         else:
             print("No listenUrl found in response.")
             return {"status": "error", "message": "No listenUrl found in response."}
@@ -130,3 +145,15 @@ async def start_call():
         return {"status": "error", "message": response.text}
 
 
+@router.websocket("/stream")
+async def stream_data(ws: WebSocket):
+    await ws.accept()
+    print("Client connected to /stream")
+
+    try:
+        while True:
+            # Wait for new transcript fromqueue
+            data = await transcript_queue.get()
+            await ws.send_text(json.dumps(data))
+    except Exception as e:
+        print("WebSocket disconnected:", e)
