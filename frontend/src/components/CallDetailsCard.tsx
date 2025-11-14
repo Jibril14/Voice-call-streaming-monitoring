@@ -44,8 +44,11 @@ const CallDetailsCard = ({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Call Details</CardTitle>
-          <Badge variant={getSentimentColor(overallSentiment) as any}>
+          {/* <Badge variant={getSentimentColor(overallSentiment) as any}>
             {overallSentiment}
+          </Badge> */}
+          <Badge variant={getSentimentColor(overallSentiment) as any}>
+            Call
           </Badge>
         </div>
       </CardHeader>
@@ -74,7 +77,7 @@ const CallDetailsCard = ({
         <div className="flex items-center gap-3">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <div>
-            <p className="text-xs text-muted-foreground">Start Time</p>
+            <p className="text-xs text-muted-foreground">Start Timep</p>
             <p className="text-sm font-medium">{formatDate(startTimestamp)}</p>
           </div>
         </div>

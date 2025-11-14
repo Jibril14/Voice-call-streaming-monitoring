@@ -10,8 +10,8 @@ const Navigation = () => {
               <Activity className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">CallSense AI</h1>
-              <p className="text-xs text-muted-foreground">Sentiment Analysis Dashboard</p>
+              <h1 className="text-xl font-bold text-foreground">Live Call Sentiment Analysis</h1>
+              <p className="text-xs text-muted-foreground">Real-time monitoring of customer and agent interactions</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
