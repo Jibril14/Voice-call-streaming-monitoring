@@ -8,7 +8,8 @@ The system provides end-to-end capabilities for monitoring, analyzing, and manag
 
 The project enables real-time voice interfaces using Vapi's infrastructure and exposes a dashboard that allows call monitoring, AI agent oversight, and outbound call triggering. The backend maintains persistent WebSocket connections to stream audio, process transcription, and run emotion classification on live conversations.
 
-![CallCenterSentimentAnalysis](./images/sample.png)
+![CallCenterSentimentAnalysis](./Images/sample.png)
+
 
 ## Key Features
 
