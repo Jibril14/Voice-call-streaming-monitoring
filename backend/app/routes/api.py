@@ -59,13 +59,13 @@ async def listen_to_vapi(listen_url: str):
                         # Send live audio to Deepgram
                         await deepgram.send_audio(msg)
                         meta_data = deepgram.get_transcript()
-                        print("Task:", meta_data)
+                        # print("Task:", meta_data)
 
                         if meta_data:
                             payload = meta_data
                             await transcript_queue.put(payload)
 
-                        # Buffer & optionally save locally
+                        # Buffer & optionally save voice chunk locally
                         buffer.extend(msg)
                         if len(buffer) >= CHUNKS_PER_FILE * len(msg):
                             audio_segment = AudioSegment(
@@ -92,17 +92,13 @@ async def listen_to_vapi(listen_url: str):
 
         except Exception as e:
             print(f"Connection attempt {attempt+1} failed: {e}")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.5) # Slows down abit
 
-    # print(deepgram.get_transcript("customer"))
     # Wrap up Deepgram connection
     await deepgram.finish()
     await asyncio.sleep(2)
     await deepgram.close()
     print("Deepgram connection closed.")
-    # return deepgram.get_transcript("customer")
-    
-
 
 
 @router.post("/start-call")
@@ -126,9 +122,7 @@ async def start_call():
         listen_url = data.get("monitor", {}).get("listenUrl")
         if listen_url:
             print("Got listenUrl, connecting immediately...")
-            # asyncio.create_task(listen_to_vapi(listen_url))
             asyncio.create_task(listen_to_vapi(listen_url))
-            # return {"status": "connected", "listen_url": listen_url}
             return {
                 "CallDetails": {
                     "CallID": "Jabr9TXYJYHvfI65yyiP88rdAHYHmcq6",
@@ -151,9 +145,30 @@ async def stream_data(ws: WebSocket):
     print("Client connected to /stream")
 
     try:
+        last_texts = {"customer": "", "agent": ""}
         while True:
-            # Wait for new transcript fromqueue
+           
             data = await transcript_queue.get()
+
+           
+            customer_text = data.get("customer", {}).get("text", "").strip()
+            agent_text = data.get("agent", {}).get("text", "").strip()
+
+            # Check if this message is new 
+            is_new_customer = customer_text and customer_text != last_texts["customer"]
+            is_new_agent = agent_text and agent_text != last_texts["agent"]
+
+            if not is_new_customer and not is_new_agent:
+                continue
+
+            if is_new_customer:
+                last_texts["customer"] = customer_text
+
+            if is_new_agent:
+                last_texts["agent"] = agent_text
+
+            print("Task:", data)
             await ws.send_text(json.dumps(data))
+
     except Exception as e:
         print("WebSocket disconnected:", e)

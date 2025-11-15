@@ -4,10 +4,57 @@ import SentimentChart from "@/components/SentimentChart";
 import TranscriptView from "@/components/TranscriptView";
 import CallAnalysisCard from "@/components/CallAnalysisCard";
 import { useCallStream } from "@/hooks/useCallStream";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
+interface CallDetails {
+  CallID: string;
+  Customer: string;
+  Duration: string;
+  StartTime: string;
+}
 
 const Index = () => {
   const { transcriptObject, isConnected } = useCallStream();
+  const [callDetails, setCallDetails] = useState<CallDetails | null>(null);
+  const [isStartingCall, setIsStartingCall] = useState(false);
+
+  const handleMakeCall = () => {
+    // Set flag and reload first
+    localStorage.setItem("makeCall", "true");
+    window.location.reload();
+  };
+
+  // Make POST request after reload if flag is set
+  useState(() => {
+    const shouldMakeCall = localStorage.getItem("makeCall");
+    if (shouldMakeCall === "true") {
+      localStorage.removeItem("makeCall");
+      setIsStartingCall(true);
+      
+      fetch("http://localhost:8000/start-call", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Failed to start call");
+          }
+          return response.json();
+        })
+        .then(data => {
+          setCallDetails(data.CallDetails);
+          setIsStartingCall(false);
+        })
+        .catch(error => {
+          console.error("Error starting call:", error);
+          toast.error("Failed to start call");
+          setIsStartingCall(false);
+        });
+    }
+  });
 
   const callSummary = useMemo(() => {
     return transcriptObject.map(entry => entry.content).join(' ');
@@ -40,19 +87,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation onMakeCall={handleMakeCall} isLoading={isStartingCall} />
       
       <main className="container mx-auto px-6 py-8">
         <div className="space-y-6">
-          <CallDetailsCard
-            callId="live-stream"
-            agentId="real-time-agent"
-            customerName="Live Customer"
-            startTimestamp={startTimestamp}
-            endTimestamp={endTimestamp}
-            durationMs={durationMs}
-            overallSentiment={overallSentiment}
-          />
+          {callDetails && (
+            <CallDetailsCard
+              callId={callDetails.CallID}
+              agentId="real-time-agent"
+              customerName={callDetails.Customer}
+              startTimestamp={new Date(callDetails.StartTime).getTime()}
+              endTimestamp={endTimestamp}
+              durationMs={durationMs}
+              overallSentiment={overallSentiment}
+            />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SentimentChart transcriptObject={transcriptObject} />
